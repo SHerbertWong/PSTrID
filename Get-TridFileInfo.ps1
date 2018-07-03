@@ -40,11 +40,21 @@ Function Get-TridFileInfo
 		[String] $Path
 	)
 
+	# Normalise $Path
+	$FullPath = if ([IO.Path]::IsPathRooted($Path))
+	{
+		[IO.Path]::GetFullPath($Path)
+	} `
+	else
+	{
+		[IO.Path]::GetFullPath((Join-Path -Path (Get-Location).Path -ChildPath $Path))
+	}
+
 	$Buffer = New-Object -TypeName Text.StringBuilder -ArgumentList 4096
 
-	if (([Pontello.PInvoke.TrID]::TrID_SubmitFileA($Path)) -eq 0)
+	if (([Pontello.PInvoke.TrID]::TrID_SubmitFileA($FullPath)) -eq 0)
 	{
-		if (-not (Test-Path -Path $Path))
+		if (-not (Test-Path -Path $FullPath))
 		{
 			throw "`"$Path`" not found"
 		}
@@ -56,7 +66,7 @@ Function Get-TridFileInfo
 
 	if (([Pontello.PInvoke.TrID]::TrID_Analyze()) -eq 0)
 	{
-		throw "fatal error while analysing `"$PATH`""
+		throw "fatal error while analysing `"$Path`""
 	}
 
 	$NumberOfResults = [Pontello.PInvoke.TrID]::TrID_GetInfo(1, 0, $Buffer)
